@@ -28,6 +28,8 @@ import argparse
 import os
 import sys
 from pathlib import Path
+import numpy as np
+from datetime import datetime
 
 import cv2
 import torch
@@ -165,6 +167,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
+                count=0
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -175,9 +178,21 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     if save_img or save_crop or view_img:  # Add bbox to image
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
-                        annotator.box_label(xyxy, label, color=colors(c, True))
+                        annotator.box_label(xyxy, color=colors(c, True))
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                    save_object=True
+                    if save_object:           
+                            x,y,w,h=int(xyxy[0]), int(xyxy[1]), int(xyxy[2] - xyxy[0]), int(xyxy[3] - xyxy[1])                   
+                            img_ = im0.astype(np.uint8)
+                            cropped_img=img_[y:y+ h, x:x + w] 
+                            now = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+
+                            filename=str(now)+f'--{count}.jpg'
+                            count+=1
+                            file_path=os.path.join(r"../clean_plates",filename)
+                            cv2.imwrite(file_path, cropped_img) 
+
 
             # Stream results
             im0 = annotator.result()
@@ -188,7 +203,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             # Save results (image with detections)
             if save_img:
                 if dataset.mode == 'image':
-                    cv2.imwrite(save_path, im0)
+                    pass                        # pasing on saving image in runs dir
+                   # cv2.imwrite(save_path, im0)
                 else:  # 'video' or 'stream'
                     if vid_path[i] != save_path:  # new video
                         vid_path[i] = save_path
